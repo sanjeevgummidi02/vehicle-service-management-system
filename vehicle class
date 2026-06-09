@@ -1,0 +1,167 @@
+CLASS lhc_ZI_VEHICLE DEFINITION INHERITING FROM cl_abap_behavior_handler.
+PUBLIC SECTION.
+    CLASS-DATA mt_vehicle TYPE TABLE OF zvehicle.
+  PRIVATE SECTION.
+
+    METHODS get_instance_authorizations FOR INSTANCE AUTHORIZATION
+      IMPORTING keys REQUEST requested_authorizations FOR zi_vehicle RESULT result.
+
+    METHODS get_global_authorizations FOR GLOBAL AUTHORIZATION
+      IMPORTING REQUEST requested_authorizations FOR zi_vehicle RESULT result.
+
+    METHODS create FOR MODIFY
+      IMPORTING entities FOR CREATE zi_vehicle.
+
+    METHODS update FOR MODIFY
+      IMPORTING entities FOR UPDATE zi_vehicle.
+
+    METHODS delete FOR MODIFY
+      IMPORTING keys FOR DELETE zi_vehicle.
+
+    METHODS read FOR READ
+      IMPORTING keys FOR READ zi_vehicle RESULT result.
+
+    METHODS lock FOR LOCK
+      IMPORTING keys FOR LOCK zi_vehicle.
+
+ENDCLASS.
+
+CLASS lhc_ZI_VEHICLE IMPLEMENTATION.
+
+  METHOD get_instance_authorizations.
+
+  LOOP AT keys INTO DATA(key).
+
+    APPEND VALUE #(
+      VehicleId = key-VehicleId
+      %update   = if_abap_behv=>auth-allowed
+      %delete   = if_abap_behv=>auth-allowed )
+      TO result.
+
+  ENDLOOP.
+
+ENDMETHOD.
+
+METHOD get_global_authorizations.
+
+  result-%create = if_abap_behv=>auth-allowed.
+
+ENDMETHOD.
+
+  METHOD create.
+
+  LOOP AT entities INTO DATA(entity).
+
+    DATA(ls_vehicle) = VALUE zvehicle(
+      client            = sy-mandt
+      vehicle_id        = entity-VehicleId
+      vehicle_no        = entity-VehicleNo
+      vehicle_type      = entity-VehicleType
+      fuel_type         = entity-FuelType
+      status            = entity-Status
+      last_service_date = entity-LastServiceDate
+      next_service_date = entity-NextServiceDate ).
+
+    APPEND ls_vehicle TO lhc_ZI_VEHICLE=>mt_vehicle.
+
+    APPEND VALUE #(
+      %cid      = entity-%cid
+      VehicleId = entity-VehicleId )
+      TO mapped-zi_vehicle.
+
+  ENDLOOP.
+
+ENDMETHOD.
+
+  METHOD update.
+
+  LOOP AT entities INTO DATA(entity).
+
+    DATA(ls_vehicle) = VALUE zvehicle(
+      client            = sy-mandt
+      vehicle_id        = entity-VehicleId
+      vehicle_no        = entity-VehicleNo
+      vehicle_type      = entity-VehicleType
+      fuel_type         = entity-FuelType
+      status            = entity-Status
+      last_service_date = entity-LastServiceDate
+      next_service_date = entity-NextServiceDate ).
+
+    APPEND ls_vehicle TO lhc_ZI_VEHICLE=>mt_vehicle.
+
+  ENDLOOP.
+
+ENDMETHOD.
+
+  METHOD delete.
+  ENDMETHOD.
+
+  METHOD read.
+
+  LOOP AT keys INTO DATA(key).
+
+    SELECT SINGLE *
+      FROM zvehicle
+      WHERE vehicle_id = @key-VehicleId
+      INTO @DATA(ls_vehicle).
+
+    IF sy-subrc = 0.
+
+      APPEND VALUE #(
+        VehicleId       = ls_vehicle-vehicle_id
+        VehicleNo       = ls_vehicle-vehicle_no
+        VehicleType     = ls_vehicle-vehicle_type
+        FuelType        = ls_vehicle-fuel_type
+        Status          = ls_vehicle-status
+        LastServiceDate = ls_vehicle-last_service_date
+        NextServiceDate = ls_vehicle-next_service_date )
+        TO result.
+
+    ENDIF.
+
+  ENDLOOP.
+
+ENDMETHOD.
+
+  METHOD lock.
+  ENDMETHOD.
+
+ENDCLASS.
+
+CLASS lsc_ZI_VEHICLE DEFINITION INHERITING FROM cl_abap_behavior_saver.
+  PROTECTED SECTION.
+
+    METHODS finalize REDEFINITION.
+
+    METHODS check_before_save REDEFINITION.
+
+    METHODS save REDEFINITION.
+
+    METHODS cleanup REDEFINITION.
+
+    METHODS cleanup_finalize REDEFINITION.
+
+ENDCLASS.
+
+CLASS lsc_ZI_VEHICLE IMPLEMENTATION.
+
+  METHOD finalize.
+  ENDMETHOD.
+
+  METHOD check_before_save.
+  ENDMETHOD.
+
+  METHOD save.
+
+  MODIFY zvehicle
+    FROM TABLE @lhc_ZI_VEHICLE=>mt_vehicle.
+
+ENDMETHOD.
+
+  METHOD cleanup.
+  ENDMETHOD.
+
+  METHOD cleanup_finalize.
+  ENDMETHOD.
+
+ENDCLASS.
