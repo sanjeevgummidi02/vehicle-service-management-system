@@ -1,0 +1,171 @@
+CLASS lhc_ZI_VEH_SERVICE DEFINITION INHERITING FROM cl_abap_behavior_handler.
+PUBLIC SECTION.
+  CLASS-DATA mt_service TYPE TABLE OF zveh_service.
+  PRIVATE SECTION.
+
+    METHODS get_instance_authorizations FOR INSTANCE AUTHORIZATION
+      IMPORTING keys REQUEST requested_authorizations FOR zi_veh_service RESULT result.
+
+    METHODS get_global_authorizations FOR GLOBAL AUTHORIZATION
+      IMPORTING REQUEST requested_authorizations FOR zi_veh_service RESULT result.
+
+    METHODS create FOR MODIFY
+      IMPORTING entities FOR CREATE zi_veh_service.
+
+    METHODS update FOR MODIFY
+      IMPORTING entities FOR UPDATE zi_veh_service.
+
+    METHODS delete FOR MODIFY
+      IMPORTING keys FOR DELETE zi_veh_service.
+
+    METHODS read FOR READ
+      IMPORTING keys FOR READ zi_veh_service RESULT result.
+
+    METHODS lock FOR LOCK
+      IMPORTING keys FOR LOCK zi_veh_service.
+
+    METHODS rba_Vehicle FOR READ
+      IMPORTING keys_rba FOR READ zi_veh_service\_Vehicle FULL result_requested RESULT result LINK association_links.
+
+ENDCLASS.
+
+CLASS lhc_ZI_VEH_SERVICE IMPLEMENTATION.
+
+  METHOD get_instance_authorizations.
+
+  LOOP AT keys INTO DATA(key).
+
+    APPEND VALUE #(
+      ServiceId = key-ServiceId
+      %update   = if_abap_behv=>auth-allowed
+      %delete   = if_abap_behv=>auth-allowed )
+      TO result.
+
+  ENDLOOP.
+
+ENDMETHOD.
+  METHOD get_global_authorizations.
+
+  result-%create = if_abap_behv=>auth-allowed.
+
+ENDMETHOD.
+
+  METHOD create.
+
+  LOOP AT entities INTO DATA(entity).
+
+    DATA(ls_service) = VALUE zveh_service(
+      client       = sy-mandt
+      service_id   = entity-ServiceId
+      vehicle_id   = entity-VehicleId
+      service_date = entity-ServiceDate
+      service_cost = entity-ServiceCost
+      remarks      = entity-Remarks ).
+
+    APPEND ls_service TO lhc_ZI_VEH_SERVICE=>mt_service.
+
+    APPEND VALUE #(
+      %cid      = entity-%cid
+      ServiceId = entity-ServiceId )
+      TO mapped-zi_veh_service.
+
+  ENDLOOP.
+
+ENDMETHOD.
+
+  METHOD update.
+
+  LOOP AT entities INTO DATA(entity).
+
+    DATA(ls_service) = VALUE zveh_service(
+      client       = sy-mandt
+      service_id   = entity-ServiceId
+      vehicle_id   = entity-VehicleId
+      service_date = entity-ServiceDate
+      service_cost = entity-ServiceCost
+      remarks      = entity-Remarks ).
+
+    APPEND ls_service TO lhc_ZI_VEH_SERVICE=>mt_service.
+
+  ENDLOOP.
+
+ENDMETHOD.
+
+  METHOD delete.
+  ENDMETHOD.
+
+  METHOD read.
+
+  LOOP AT keys INTO DATA(key).
+
+    SELECT SINGLE *
+      FROM zveh_service
+      WHERE service_id = @key-ServiceId
+      INTO @DATA(ls_service).
+
+    IF sy-subrc = 0.
+
+      APPEND VALUE #(
+        ServiceId   = ls_service-service_id
+        VehicleId   = ls_service-vehicle_id
+        ServiceDate = ls_service-service_date
+        ServiceCost = ls_service-service_cost
+        Remarks     = ls_service-remarks )
+        TO result.
+
+    ENDIF.
+
+  ENDLOOP.
+
+ENDMETHOD.
+
+  METHOD lock.
+  ENDMETHOD.
+
+  METHOD rba_Vehicle.
+  ENDMETHOD.
+
+ENDCLASS.
+
+CLASS lsc_ZI_VEH_SERVICE DEFINITION INHERITING FROM cl_abap_behavior_saver.
+  PROTECTED SECTION.
+
+    METHODS finalize REDEFINITION.
+
+    METHODS check_before_save REDEFINITION.
+
+    METHODS save REDEFINITION.
+
+    METHODS cleanup REDEFINITION.
+
+    METHODS cleanup_finalize REDEFINITION.
+
+    METHODS map_messages REDEFINITION.
+
+ENDCLASS.
+
+CLASS lsc_ZI_VEH_SERVICE IMPLEMENTATION.
+
+  METHOD finalize.
+  ENDMETHOD.
+
+  METHOD check_before_save.
+  ENDMETHOD.
+
+  METHOD save.
+
+  MODIFY zveh_service
+    FROM TABLE @lhc_ZI_VEH_SERVICE=>mt_service.
+
+ENDMETHOD.
+
+  METHOD cleanup.
+  ENDMETHOD.
+
+  METHOD cleanup_finalize.
+  ENDMETHOD.
+
+  METHOD map_messages.
+  ENDMETHOD.
+
+ENDCLASS.
